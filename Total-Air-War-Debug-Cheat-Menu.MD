@@ -1,6 +1,6 @@
 # Finding an undiscovered debug/cheat menu unlock code in DID's F-22 Total Air War
 
-F-22 Air Dominance Fighter was released on Steam this week, with a Windows 11-compatible executable, original assets, sadly no HOTAS support at launch (although that is being worked on), and in my view a ridiculous price of £20.99 - that's about three times the standard price of similar era sims on digital stores.  Someone has vastly overestimated the nostalgia market.
+F-22 Air Dominance Fighter was released on Steam this week, with a Windows 11-compatible executable, original assets, sadly no HOTAS support at launch (although that is being worked on), and a surprising price of £20.99 - that's about three times the standard price of similar era sims on digital stores.  Someone has vastly overestimated the nostalgia market.
 
 Anyway, while I wait for a GoG release (and deep discount!) of the F-22 ADF rerelease, it made me think about F-22 Total Air War - the promised dynamic campaign expansion pack to ADF that later morphed into a full price sequel within a year.  Specifically, the fact that I couldn't find any mention of how to unlock the debug/cheat mode in the game.
 
