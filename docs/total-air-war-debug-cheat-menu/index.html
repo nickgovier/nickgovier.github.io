@@ -64,20 +64,11 @@ from June 2024 noted a similar mechanism for EF2000, this time holding
 <code>S</code> <code>I</code> <code>M</code>.</p>
 <p>In the Discord when the EF2000 cheat was found, the locator (Krishty,
 owner of the linked forum) noted:</p>
-<figure>
-<img src="no_find.png"
-alt="I searched a similar code in TAW for a long time but didn’t find anything. And in contrast to ADF, TAW’s executable does not contain a string CHEAT ACTIVE." />
-<figcaption aria-hidden="true">I searched a similar code in TAW for a
-long time but didn’t find anything. And in contrast to ADF, TAW’s
-executable does not contain a string CHEAT ACTIVE.</figcaption>
-</figure>
+<p><img src="no_find.png"
+alt="I searched a similar code in TAW for a long time but didn’t find anything. And in contrast to ADF, TAW’s executable does not contain a string CHEAT ACTIVE." /></p>
 <p>Disheartening. However, on the forum, another user claimed:</p>
-<figure>
-<img src="hexedit.png"
-alt="I found those debug menus in TAW, but could only enable them one at a time by hex editing the exe" />
-<figcaption aria-hidden="true">I found those debug menus in TAW, but
-could only enable them one at a time by hex editing the exe</figcaption>
-</figure>
+<p><img src="hexedit.png"
+alt="I found those debug menus in TAW, but could only enable them one at a time by hex editing the exe" /></p>
 <p>Intriguing!</p>
 <p>As a reverse engineer, this piqued my interest. Apparently the people
 that have spent years reversing TAW (and whose hard work has been
@@ -92,21 +83,15 @@ the original TAW release doesn’t run in Windows 11, and my reversing
 debugger doesn’t run on Windows 9x. So static analysis is the way
 forward. I dig out my TAW big box, spin up a Win95 VM, and install the
 game:</p>
-<figure>
-<img src="install.png" alt="Installing…" />
-<figcaption aria-hidden="true">Installing…</figcaption>
-</figure>
+<p><img src="install.png" alt="Installing…" /></p>
 <p>I select Direct3D mode instead of Glide, hoping that this will be
 more compatible with a vanilla VM install. A quick check and the game
 runs. Then I copy out the f22.dat file to my host PC for some static
 analysis in IDA (the _f22.exe file is a 35kb stub; f22.dat is a 3,509kb
 file that is actually a x86 32-bit PE with a different extension, in my
 case dated 12-Aug-1998).</p>
-<figure>
-<img src="die_hashes.png" alt="The hashes of my d22.dat executable" />
-<figcaption aria-hidden="true">The hashes of my d22.dat
-executable</figcaption>
-</figure>
+<p><img src="die_hashes.png"
+alt="The hashes of my d22.dat executable" /></p>
 <p>I start by assuming any unlock code would involve holding down ALT
 and typing in a code, as was the case with EF2000 (<code>ALT</code> +
 <code>T</code> <code>O</code> <code>P</code> <code>S</code>
@@ -122,23 +107,15 @@ says that these events are posted “when the user presses the F10 key
 presses another key.” I also find some strings that contain
 <code>LEFT[RIGHT] WINDOWS KEY TRAPPED!!!!!\n</code> which could also be
 useful to narrow down keyboard handling.</p>
-<figure>
-<img src="key_search.png"
-alt="Searching for strings containing ‘key’" />
-<figcaption aria-hidden="true">Searching for strings containing
-‘key’</figcaption>
-</figure>
+<p><img src="key_search.png"
+alt="Searching for strings containing ‘key’" /></p>
 <p>On a hunch, I also filter for “scrn” as one of the ADF debug options
 saves a screenshot with a filename <code>SCRNx.LBM</code>, sure enough
 <code>0x62ddc4</code> contains the string <code>SCRN%hd.LBM</code> which
 should help us narrow down the screenshot function, if it still
 exists.</p>
-<figure>
-<img src="scrn_search.png"
-alt="Searching for strings containing ‘scrn’" />
-<figcaption aria-hidden="true">Searching for strings containing
-‘scrn’</figcaption>
-</figure>
+<p><img src="scrn_search.png"
+alt="Searching for strings containing ‘scrn’" /></p>
 <p>Finally, the EF2000 debug options print strings with flight model
 info, such as “Pitch”, “Angle of attack”, “Altitude”, “Mach”, etc.
 Filtering strings for potential format strings containing these terms
@@ -146,12 +123,8 @@ brings up a number of probable candidates, e.g. <code>0x630d68</code>
 which contains “ALTITUDE %5.0f FT TRUE AIRSPEED: %4.0f KTS RATE OF
 CLIMB: %5.0f FT PER MIN” - a classic example of a debug format
 string.</p>
-<figure>
-<img src="debug_format_string_search.png"
-alt="Searching for debug format strings" />
-<figcaption aria-hidden="true">Searching for debug format
-strings</figcaption>
-</figure>
+<p><img src="debug_format_string_search.png"
+alt="Searching for debug format strings" /></p>
 <p>Armed with several attack vectors, I start looking into where these
 strings are referenced in the code.</p>
 <p>I decide to try working in reverse from the screenshot function
@@ -163,10 +136,7 @@ debug/cheat mode is active or not. Then I can search for where that flag
 is set, and what the conditions are to enable it. That’s the plan.</p>
 <p>The screenshot filename string is only used by
 <code>sub_411014</code>:</p>
-<figure>
-<img src="sub_411014.png" alt="sub_411014" />
-<figcaption aria-hidden="true">sub_411014</figcaption>
-</figure>
+<p><img src="sub_411014.png" alt="sub_411014" /></p>
 <p>We can immediately see that the top 16 bits of <code>0x664cb6</code>
 (<code>dword_664cb6 &gt;&gt; 16</code> or
 <code>HIWORD(dword_664cb6)</code>) seems to be the screenshot count - it
@@ -181,15 +151,9 @@ note down.</p>
 is only called from <code>sub_412d88</code>, which is what seems to be a
 long list of pointers being saved into co-located memory locations,
 looking a lot like a function pointer table:</p>
-<figure>
-<img src="function_map.png" alt="Function map" />
-<figcaption aria-hidden="true">Function map</figcaption>
-</figure>
+<p><img src="function_map.png" alt="Function map" /></p>
 <p>At the top of this function, it has a loop:</p>
-<figure>
-<img src="function_map_loop.png" alt="Function map loop" />
-<figcaption aria-hidden="true">Function map loop</figcaption>
-</figure>
+<p><img src="function_map_loop.png" alt="Function map loop" /></p>
 <p>It loops from 0 to 127 (counter variable <code>v0</code>) setting
 <code>0x79c1e0[i]</code> to zero. Then it sets arbitrary values in that
 128 item memory range to function pointers. So <code>0x79c1e0</code>
@@ -199,10 +163,7 @@ the function it copies the contents of <code>0x79c1e0</code> into two
 new arrays, <code>0x79bde0[]</code> and <code>0x79bfe0[]</code>, then
 adds and/or overwrites some of these existing function pointers with new
 ones.</p>
-<figure>
-<img src="function_map_loop_2.png" alt="Function map loop 2" />
-<figcaption aria-hidden="true">Function map loop 2</figcaption>
-</figure>
+<p><img src="function_map_loop_2.png" alt="Function map loop 2" /></p>
 <p>So these three arrays (<code>0x79c1e0[]</code>,
 <code>0x79bde0[]</code> and <code>0x79bfe0[]</code>) seem to be
 important function pointer maps, and one of them maps to our screenshot
@@ -210,10 +171,7 @@ saving function. Perhaps these are lookup tables for event or keyboard
 handling?</p>
 <p>The only function in which these three arrays are accessed, outside
 of the initialisation function above, is <code>sub_412ca0</code>.</p>
-<figure>
-<img src="function_map_access.png" alt="Function map access" />
-<figcaption aria-hidden="true">Function map access</figcaption>
-</figure>
+<p><img src="function_map_access.png" alt="Function map access" /></p>
 <p>We can clearly see here a pattern: if <code>0x79c40e</code> is
 nonzero, we index into <code>0x79bde0[]</code> using the index
 <code>0xce8481</code>, and if the result is not null, we call the
@@ -233,17 +191,11 @@ calls the <code>Save_Screenshot</code> function.</p>
 <p>For clarity, I change <code>0x79c1e0[]</code>,
 <code>0x79bde0[]</code> and <code>0x79bfe0[]</code> in IDA to be 128
 element arrays:</p>
-<figure>
-<img src="convert_to_array.png" alt="Convert to array" />
-<figcaption aria-hidden="true">Convert to array</figcaption>
-</figure>
+<p><img src="convert_to_array.png" alt="Convert to array" /></p>
 <p>When I do this, IDA tells me that the <code>Save_Screenshot</code>
 function is referenced at index 87 (<code>0x57</code>) of
 <code>0x79bde0[]</code>.</p>
-<figure>
-<img src="screenshot_index.png" alt="Screenshot_index" />
-<figcaption aria-hidden="true">Screenshot_index</figcaption>
-</figure>
+<p><img src="screenshot_index.png" alt="Screenshot_index" /></p>
 <p>Since we know TAW uses DirectInput (f22.dat imports DINPUT.DLL), we
 can look up in a <a
 href="https://ionicwind.com/guides/emergence/appendix_a.htm">list of
@@ -251,10 +203,7 @@ DirectInput key codes</a> and see that <code>0x57</code> is the code for
 the <code>F11</code> key. And wouldn’t you know it, in the list of
 previously discovered debug commands for ADF, <code>SHIFT+F11</code>
 takes a screenshot:</p>
-<figure>
-<img src="shift+f11.png" alt="SHIFT+F11" />
-<figcaption aria-hidden="true">SHIFT+F11</figcaption>
-</figure>
+<p><img src="shift+f11.png" alt="SHIFT+F11" /></p>
 <p>So, it is looking likely that a) the screenshot function is also
 <code>SHIFT+F11</code> in TAW like it was in ADF, b)
 <code>0xce8481</code> stores the DirectInput key code for the key
@@ -264,34 +213,22 @@ key is pressed along with the key in question.</p>
 <p>I rename some of the values in <code>sub_412ca0</code> above (now
 renamed <code>FUN_412CA0_Process_Key_Press</code>) to reflect what we
 have learned:</p>
-<figure>
-<img src="shift_renaming.png" alt="Renaming" />
-<figcaption aria-hidden="true">Renaming</figcaption>
-</figure>
+<p><img src="shift_renaming.png" alt="Renaming" /></p>
 <p>Note that we intuit that the variable tested before accessing the
 SHIFT function map, <code>0x79c40e</code>, is a
 <code>Shift_Pressed</code> flag, which is set:</p>
-<figure>
-<img src="shift_pressed_flag.png" alt="Shift pressed flag" />
-<figcaption aria-hidden="true">Shift pressed flag</figcaption>
-</figure>
+<p><img src="shift_pressed_flag.png" alt="Shift pressed flag" /></p>
 <p>Using these memory locations <code>0xce83b6</code> and
 <code>0xce83aa</code>, plus <code>0xce8481</code> which stores the key
 being pressed, and a little (okay, a lot!) of searching, I find the
 following code in <code>sub_5307dc</code>:</p>
-<figure>
-<img src="key_press_flag.png" alt="Key press flag" />
-<figcaption aria-hidden="true">Key press flag</figcaption>
-</figure>
+<p><img src="key_press_flag.png" alt="Key press flag" /></p>
 <p><code>0xce8380[]</code> appears to be an array of key press states,
 with the appropriate index set to 1 if that key is pressed. Given we
 know that <code>0xce8481</code> contains the DirectInput code of the key
 being pressed, we can tell IDA that <code>0xce8380</code> is an array,
 rename it to Key_Status, and see how that affects Process_Key_Press:</p>
-<figure>
-<img src="key_status_update.png" alt="Key status update" />
-<figcaption aria-hidden="true">Key status update</figcaption>
-</figure>
+<p><img src="key_status_update.png" alt="Key status update" /></p>
 <p>Now we can look up these indices in the DirectInput key map, where we
 find <code>0x36</code> is <code>RSHIFT</code>, <code>0x2a</code> is
 <code>LSHIFT</code>, <code>0x38</code> is <code>LMENU</code> (Left ALT),
@@ -302,11 +239,8 @@ ALT+key commands. Also, <code>0x79c1e0</code> must apply for open keys
 (i.e. keys pressed when neither SHIFT nor ALT is presssed).
 <code>0x79c3fe</code> is true when CTRL is pressed, but doesn’t seem to
 be a factor here. After some further renaming:</p>
-<figure>
-<img src="process_key_press_update.png"
-alt="Process key press update" />
-<figcaption aria-hidden="true">Process key press update</figcaption>
-</figure>
+<p><img src="process_key_press_update.png"
+alt="Process key press update" /></p>
 <p>Armed with this info, we could go back to the set up of our function
 pointer tables in <code>sub_412d88</code>, and the index into each of
 the three function pointer tables will tell us the corresponding key
@@ -319,16 +253,10 @@ enable code is, which we can narrow down now that we know something
 about how inputs are processed.</p>
 <p>The <code>Process_Key_Press</code> function is only called from one
 place, <code>sub_413fec</code>:</p>
-<figure>
-<img src="sub_413fec.png" alt="sub_413fec" />
-<figcaption aria-hidden="true">sub_413fec</figcaption>
-</figure>
+<p><img src="sub_413fec.png" alt="sub_413fec" /></p>
 <p>Immediately before, it calls <code>sub_412c04</code>, which looks
 like this:</p>
-<figure>
-<img src="sub_412c04.png" alt="sub_412c04" />
-<figcaption aria-hidden="true">sub_412c04</figcaption>
-</figure>
+<p><img src="sub_412c04.png" alt="sub_412c04" /></p>
 <p>We already know that <code>0x38</code> is Left ALT, so line 5 says we
 only process this function if ALT is down and another key is being
 pressed, which sounds promising.</p>
@@ -345,10 +273,7 @@ might expect a debug/cheat code function to do. So <code>0x664d04</code>
 is a counter of how many keypresses have matched the contents of array
 <code>0x664d06[]</code>. Is <code>0x664d06</code> the debug/cheat enable
 code?</p>
-<figure>
-<img src="0x664d06.png" alt="0x664d06" />
-<figcaption aria-hidden="true">0x664d06</figcaption>
-</figure>
+<p><img src="0x664d06.png" alt="0x664d06" /></p>
 <p>Assuming these are DirectInput key codes, we get: <code>D</code>
 <code>O</code> <code>N</code> <code>E</code> <code>I</code>
 <code>T</code> <code>/0</code> <code>/0</code></p>

@@ -49,7 +49,7 @@ foreach ($SourceFile in $MarkdownFiles) {
     New-Item $OutputParent -ItemType Directory -Force | Out-Null
 
     & pandoc $SourceFile.FullName `
-        --from=markdown `
+        --from=markdown-implicit_figures `
         --to=html5 `
         --standalone `
         --css=/style.css `
