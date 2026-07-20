@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>index</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<header class="site-header">
+  <a href="/"><strong>Nick Govier</strong></a>
+  &nbsp; <a href="/about.html">About</a>
+</header>
+<hr>
+<main>
+<h1
+id="finding-an-undiscovered-debugcheat-menu-unlock-code-in-dids-f-22-total-air-war">Finding
+an undiscovered debug/cheat menu unlock code in DID’s F-22 Total Air
+War</h1>
+<p>F-22 Air Dominance Fighter was released on Steam this week, with a
+Windows 11-compatible executable, original assets, sadly no HOTAS
+support at launch (although that is being worked on), and a surprising
+price of £20.99 - that’s about three times the standard price of similar
+era sims on digital stores. Someone has vastly overestimated the
+nostalgia market.</p>
+<p>Anyway, while I wait for a GoG release (and deep discount!) of the
+F-22 ADF rerelease, it made me think about F-22 Total Air War - the
+promised dynamic campaign expansion pack to ADF that later morphed into
+a full price sequel within a year. Specifically, the fact that I
+couldn’t find any mention of how to unlock the debug/cheat mode in the
+game.</p>
+<p><a href="http://simforums.krishty.com/viewtopic.php?t=50">This
+post</a> from Feb 2022 noted that the debug/cheat mode could be enabled
+in F-22 Air Dominance Fighter by holding <code>ALT</code> and typing
+<code>D</code> <code>I</code> <code>D</code> <code>I</code>
+<code>T</code>. Later, <a
+href="http://simforums.krishty.com/viewtopic.php?t=1626">this post</a>
+from June 2024 noted a similar mechanism for EF2000, this time holding
+<code>ALT</code> and typing <code>T</code> <code>O</code> <code>P</code>
+<code>S</code> <code>I</code> <code>M</code>.</p>
+<p>In the Discord when the EF2000 cheat was found, the locator (Krishty,
+owner of the linked forum) noted:</p>
+<figure>
+<img src="no_find.png"
+alt="I searched a similar code in TAW for a long time but didn’t find anything. And in contrast to ADF, TAW’s executable does not contain a string CHEAT ACTIVE." />
+<figcaption aria-hidden="true">I searched a similar code in TAW for a
+long time but didn’t find anything. And in contrast to ADF, TAW’s
+executable does not contain a string CHEAT ACTIVE.</figcaption>
+</figure>
+<p>Disheartening. However, on the forum, another user claimed:</p>
+<figure>
+<img src="hexedit.png"
+alt="I found those debug menus in TAW, but could only enable them one at a time by hex editing the exe" />
+<figcaption aria-hidden="true">I found those debug menus in TAW, but
+could only enable them one at a time by hex editing the exe</figcaption>
+</figure>
+<p>Intriguing!</p>
+<p>As a reverse engineer, this piqued my interest. Apparently the people
+that have spent years reversing TAW (and whose hard work has been
+leveraged in the ADF Steam release) couldn’t find the TAW debug enabler.
+I couldn’t locate anything online to suggest anyone knew how to enable
+it via a typed code. But some of the functionality still seemed to be
+present in the exe. Maybe the enabler was removed at compile time? Maybe
+it had been obfuscated but still existed? Time to find out!</p>
+<p>Firstly, I like to reverse applications live via a debugger, but
+thanks to Microsoft’s unwavering commitment to backwards compatibility,
+the original TAW release doesn’t run in Windows 11, and my reversing
+debugger doesn’t run on Windows 9x. So static analysis is the way
+forward. I dig out my TAW big box, spin up a Win95 VM, and install the
+game:</p>
+<figure>
+<img src="install.png" alt="Installing…" />
+<figcaption aria-hidden="true">Installing…</figcaption>
+</figure>
+<p>I select Direct3D mode instead of Glide, hoping that this will be
+more compatible with a vanilla VM install. A quick check and the game
+runs. Then I copy out the f22.dat file to my host PC for some static
+analysis in IDA (the _f22.exe file is a 35kb stub; f22.dat is a 3,509kb
+file that is actually a x86 32-bit PE with a different extension, in my
+case dated 12-Aug-1998).</p>
+<figure>
+<img src="die_hashes.png" alt="The hashes of my d22.dat executable" />
+<figcaption aria-hidden="true">The hashes of my d22.dat
+executable</figcaption>
+</figure>
+<p>I start by assuming any unlock code would involve holding down ALT
+and typing in a code, as was the case with EF2000 (<code>ALT</code> +
+<code>T</code> <code>O</code> <code>P</code> <code>S</code>
+<code>I</code> <code>M</code>) and ADF (<code>ALT</code> +
+<code>D</code> <code>I</code> <code>D</code> <code>I</code>
+<code>T</code>), so start looking for key-related functions. I search
+strings for “key” and uncover some potentially useful strings like
+<code>WM_SYSKEYDOWN</code> and <code>WM_SYSKEYUP</code> that are Windows
+messages for system keys like ALT being pressed. <a
+href="https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-syskeydown">MSDN</a>
+says that these events are posted “when the user presses the F10 key
+(which activates the menu bar) or holds down the ALT key and then
+presses another key.” I also find some strings that contain
+<code>LEFT[RIGHT] WINDOWS KEY TRAPPED!!!!!\n</code> which could also be
+useful to narrow down keyboard handling.</p>
+<figure>
+<img src="key_search.png"
+alt="Searching for strings containing ‘key’" />
+<figcaption aria-hidden="true">Searching for strings containing
+‘key’</figcaption>
+</figure>
+<p>On a hunch, I also filter for “scrn” as one of the ADF debug options
+saves a screenshot with a filename <code>SCRNx.LBM</code>, sure enough
+<code>0x62ddc4</code> contains the string <code>SCRN%hd.LBM</code> which
+should help us narrow down the screenshot function, if it still
+exists.</p>
+<figure>
+<img src="scrn_search.png"
+alt="Searching for strings containing ‘scrn’" />
+<figcaption aria-hidden="true">Searching for strings containing
+‘scrn’</figcaption>
+</figure>
+<p>Finally, the EF2000 debug options print strings with flight model
+info, such as “Pitch”, “Angle of attack”, “Altitude”, “Mach”, etc.
+Filtering strings for potential format strings containing these terms
+brings up a number of probable candidates, e.g. <code>0x630d68</code>
+which contains “ALTITUDE %5.0f FT TRUE AIRSPEED: %4.0f KTS RATE OF
+CLIMB: %5.0f FT PER MIN” - a classic example of a debug format
+string.</p>
+<figure>
+<img src="debug_format_string_search.png"
+alt="Searching for debug format strings" />
+<figcaption aria-hidden="true">Searching for debug format
+strings</figcaption>
+</figure>
+<p>Armed with several attack vectors, I start looking into where these
+strings are referenced in the code.</p>
+<p>I decide to try working in reverse from the screenshot function
+first, assumming that a) the code still exists, and b) it is still
+accessed via the Debug/Cheat mode. I can hopefully work backwards from
+the filename, to the function that takes the screenshot, to the link
+back to the input used, and potentially a flag that saves whether the
+debug/cheat mode is active or not. Then I can search for where that flag
+is set, and what the conditions are to enable it. That’s the plan.</p>
+<p>The screenshot filename string is only used by
+<code>sub_411014</code>:</p>
+<figure>
+<img src="sub_411014.png" alt="sub_411014" />
+<figcaption aria-hidden="true">sub_411014</figcaption>
+</figure>
+<p>We can immediately see that the top 16 bits of <code>0x664cb6</code>
+(<code>dword_664cb6 &gt;&gt; 16</code> or
+<code>HIWORD(dword_664cb6)</code>) seems to be the screenshot count - it
+calls <code>sprintf</code> to insert this value into the
+<code>SCRNx.LBM</code> filename, and increments it in line 13. It looks
+like this while loop keeps retrying filenames until it finds a valid
+one. We also see the entire function only does something if
+<code>0x664ca4</code> is nonzero, which looks like useful information to
+note down.</p>
+<p>I rename <code>sub_411014</code> to
+<code>FUN_411014_Save_Screenshot</code>, and look for what calls it. It
+is only called from <code>sub_412d88</code>, which is what seems to be a
+long list of pointers being saved into co-located memory locations,
+looking a lot like a function pointer table:</p>
+<figure>
+<img src="function_map.png" alt="Function map" />
+<figcaption aria-hidden="true">Function map</figcaption>
+</figure>
+<p>At the top of this function, it has a loop:</p>
+<figure>
+<img src="function_map_loop.png" alt="Function map loop" />
+<figcaption aria-hidden="true">Function map loop</figcaption>
+</figure>
+<p>It loops from 0 to 127 (counter variable <code>v0</code>) setting
+<code>0x79c1e0[i]</code> to zero. Then it sets arbitrary values in that
+128 item memory range to function pointers. So <code>0x79c1e0</code>
+seems like a 128 element array of function pointers, where 75 elements
+are assigned a function pointer and the rest are left null. Later on in
+the function it copies the contents of <code>0x79c1e0</code> into two
+new arrays, <code>0x79bde0[]</code> and <code>0x79bfe0[]</code>, then
+adds and/or overwrites some of these existing function pointers with new
+ones.</p>
+<figure>
+<img src="function_map_loop_2.png" alt="Function map loop 2" />
+<figcaption aria-hidden="true">Function map loop 2</figcaption>
+</figure>
+<p>So these three arrays (<code>0x79c1e0[]</code>,
+<code>0x79bde0[]</code> and <code>0x79bfe0[]</code>) seem to be
+important function pointer maps, and one of them maps to our screenshot
+saving function. Perhaps these are lookup tables for event or keyboard
+handling?</p>
+<p>The only function in which these three arrays are accessed, outside
+of the initialisation function above, is <code>sub_412ca0</code>.</p>
+<figure>
+<img src="function_map_access.png" alt="Function map access" />
+<figcaption aria-hidden="true">Function map access</figcaption>
+</figure>
+<p>We can clearly see here a pattern: if <code>0x79c40e</code> is
+nonzero, we index into <code>0x79bde0[]</code> using the index
+<code>0xce8481</code>, and if the result is not null, we call the
+referenced function. Else, if <code>0x79c3fc</code> is nonzero, we do
+the same into <code>0x79bfe0[]</code>, else, we call into
+<code>0x79c1e0</code>. The index in all cases is <code>0xce8481</code>,
+which is then set to zero after being used, so this is important to
+find. And at the top of the function we see that the actual conditions
+are <code>(0xce83b6 | 0xce83aa)</code> for the first check, and
+<code>0xce83b8</code> for the second check.</p>
+<p>I do a lot of searching for where <code>0xce8481</code>, the index,
+is used - it’s used in a lot of places! My hunch is that it is an event
+code or a key index, that is set when the user presses the key
+combination required to take a screenshot, and this code will use
+<code>0xce8481</code> to find the index in the correct map that then
+calls the <code>Save_Screenshot</code> function.</p>
+<p>For clarity, I change <code>0x79c1e0[]</code>,
+<code>0x79bde0[]</code> and <code>0x79bfe0[]</code> in IDA to be 128
+element arrays:</p>
+<figure>
+<img src="convert_to_array.png" alt="Convert to array" />
+<figcaption aria-hidden="true">Convert to array</figcaption>
+</figure>
+<p>When I do this, IDA tells me that the <code>Save_Screenshot</code>
+function is referenced at index 87 (<code>0x57</code>) of
+<code>0x79bde0[]</code>.</p>
+<figure>
+<img src="screenshot_index.png" alt="Screenshot_index" />
+<figcaption aria-hidden="true">Screenshot_index</figcaption>
+</figure>
+<p>Since we know TAW uses DirectInput (f22.dat imports DINPUT.DLL), we
+can look up in a <a
+href="https://ionicwind.com/guides/emergence/appendix_a.htm">list of
+DirectInput key codes</a> and see that <code>0x57</code> is the code for
+the <code>F11</code> key. And wouldn’t you know it, in the list of
+previously discovered debug commands for ADF, <code>SHIFT+F11</code>
+takes a screenshot:</p>
+<figure>
+<img src="shift+f11.png" alt="SHIFT+F11" />
+<figcaption aria-hidden="true">SHIFT+F11</figcaption>
+</figure>
+<p>So, it is looking likely that a) the screenshot function is also
+<code>SHIFT+F11</code> in TAW like it was in ADF, b)
+<code>0xce8481</code> stores the DirectInput key code for the key
+pressed, and c) <code>0x79bde0[]</code> is an array of function pointers
+per key, also indexed by DirectInput code, which applies when the SHIFT
+key is pressed along with the key in question.</p>
+<p>I rename some of the values in <code>sub_412ca0</code> above (now
+renamed <code>FUN_412CA0_Process_Key_Press</code>) to reflect what we
+have learned:</p>
+<figure>
+<img src="shift_renaming.png" alt="Renaming" />
+<figcaption aria-hidden="true">Renaming</figcaption>
+</figure>
+<p>Note that we intuit that the variable tested before accessing the
+SHIFT function map, <code>0x79c40e</code>, is a
+<code>Shift_Pressed</code> flag, which is set:</p>
+<figure>
+<img src="shift_pressed_flag.png" alt="Shift pressed flag" />
+<figcaption aria-hidden="true">Shift pressed flag</figcaption>
+</figure>
+<p>Using these memory locations <code>0xce83b6</code> and
+<code>0xce83aa</code>, plus <code>0xce8481</code> which stores the key
+being pressed, and a little (okay, a lot!) of searching, I find the
+following code in <code>sub_5307dc</code>:</p>
+<figure>
+<img src="key_press_flag.png" alt="Key press flag" />
+<figcaption aria-hidden="true">Key press flag</figcaption>
+</figure>
+<p><code>0xce8380[]</code> appears to be an array of key press states,
+with the appropriate index set to 1 if that key is pressed. Given we
+know that <code>0xce8481</code> contains the DirectInput code of the key
+being pressed, we can tell IDA that <code>0xce8380</code> is an array,
+rename it to Key_Status, and see how that affects Process_Key_Press:</p>
+<figure>
+<img src="key_status_update.png" alt="Key status update" />
+<figcaption aria-hidden="true">Key status update</figcaption>
+</figure>
+<p>Now we can look up these indices in the DirectInput key map, where we
+find <code>0x36</code> is <code>RSHIFT</code>, <code>0x2a</code> is
+<code>LSHIFT</code>, <code>0x38</code> is <code>LMENU</code> (Left ALT),
+and <code>0x1d</code> is <code>LCONTROL</code>. Given these values, we
+can intuit that <code>0x79c3fc</code> is true when ALT is pressed, and
+so the function pointer map <code>0x79bfe0[]</code> must be used for
+ALT+key commands. Also, <code>0x79c1e0</code> must apply for open keys
+(i.e. keys pressed when neither SHIFT nor ALT is presssed).
+<code>0x79c3fe</code> is true when CTRL is pressed, but doesn’t seem to
+be a factor here. After some further renaming:</p>
+<figure>
+<img src="process_key_press_update.png"
+alt="Process key press update" />
+<figcaption aria-hidden="true">Process key press update</figcaption>
+</figure>
+<p>Armed with this info, we could go back to the set up of our function
+pointer tables in <code>sub_412d88</code>, and the index into each of
+the three function pointer tables will tell us the corresponding key
+press that calls that function (either open key, SHIFT+key, or ALT+key).
+We could then cross-reference that against the Keyboard map in the TAW
+manual, and we would then know what each of those 136 functions does.
+That’s a significant attack vector for reversing the game. However,
+today I’m interested in figuring out where (if anywhere) the debug/cheat
+enable code is, which we can narrow down now that we know something
+about how inputs are processed.</p>
+<p>The <code>Process_Key_Press</code> function is only called from one
+place, <code>sub_413fec</code>:</p>
+<figure>
+<img src="sub_413fec.png" alt="sub_413fec" />
+<figcaption aria-hidden="true">sub_413fec</figcaption>
+</figure>
+<p>Immediately before, it calls <code>sub_412c04</code>, which looks
+like this:</p>
+<figure>
+<img src="sub_412c04.png" alt="sub_412c04" />
+<figcaption aria-hidden="true">sub_412c04</figcaption>
+</figure>
+<p>We already know that <code>0x38</code> is Left ALT, so line 5 says we
+only process this function if ALT is down and another key is being
+pressed, which sounds promising.</p>
+<p>Line 8 checks to see if the key being pressed matches the value in an
+array starting at <code>0x664d06</code>, where the index into this array
+is the top 16 bits of <code>0x664d02</code>
+(i.e. <code>0x664d04</code>).</p>
+<p>If there is no match, we set <code>0x664d04</code> to zero and
+return. If it does match, we set the key pressed to zero and increment
+<code>0x664d04</code> by 1. Note that setting the key pressed status to
+zero effectively “swallows” the keypress before the next function
+<code>Process_Key_Press</code> tries to process it, which is what we
+might expect a debug/cheat code function to do. So <code>0x664d04</code>
+is a counter of how many keypresses have matched the contents of array
+<code>0x664d06[]</code>. Is <code>0x664d06</code> the debug/cheat enable
+code?</p>
+<figure>
+<img src="0x664d06.png" alt="0x664d06" />
+<figcaption aria-hidden="true">0x664d06</figcaption>
+</figure>
+<p>Assuming these are DirectInput key codes, we get: <code>D</code>
+<code>O</code> <code>N</code> <code>E</code> <code>I</code>
+<code>T</code> <code>/0</code> <code>/0</code></p>
+<p>Given the debug/cheat unlock in ADF was to hold down <code>ALT</code>
+and type <code>D</code> <code>I</code> <code>D</code> <code>I</code>
+<code>T</code>, it would be a nice touch if the unlock for TAW was
+updated to <code>D</code> <code>O</code> <code>N</code> <code>E</code>
+<code>I</code> <code>T</code>!</p>
+<p>So let’s wrap up with some renaming. <code>sub_412c04</code> is our
+debug/cheat code checking function. <code>0x664d06</code> is the unlock
+code.</p>
+<p>What does it do when a successful character has been found, in the
+second half of the checking function, to actually enable the debug/cheat
+mode? After increasing the correct character counter, we check the next
+letter in the unlock code to see if it is null. If so, we have reached
+the end of the sequence successfully, so we flip a flag in
+<code>0x664ca4</code> (presumably, a “debug/cheats enabled” flag), reset
+the correct keypress counter to zero, and call <code>sub_4c9e18</code>.
+Note that <code>sub_411014</code>, the <code>Save_Screenshot</code>
+function, checked <code>0x664ca4</code> was true before saving the
+screenshot, adding further weight that this is a “debug/cheats enabled”
+flag.</p>
+<p>Let’s save that and test <code>DONEIT</code>, by launching the game,
+entering a mission, holding <code>ALT</code> and typing <code>D</code>
+<code>O</code> <code>N</code> <code>E</code> <code>I</code>
+<code>T</code>, then pressing <code>SHIFT+F11</code> to see if we get a
+<code>SCRNx.LBM</code> saved in the game folder…</p>
+<p>Success!</p>
+<p>Trying other codes appears to match the same key commands as ADF,
+e.g. <code>ALT+K</code> shifts time forward by 2 hours.
+<code>ALT+F10</code> and <code>ALT+F11</code> goes through various debug
+outputs on screen. <code>ALT+D</code> rearms your aircraft.</p>
+<p>Here ends a successful static analysis. We have discovered a
+debug/cheat unlock code that has until now gone undiscovered, as far as
+I can tell. Not bad for a few hours’ work.</p>
+<p>We have also inadvertently discovered two rich opportunities for
+further reversing. Firstly <code>sub_412d88</code>, which sets function
+pointers for all of the possible key commands in the game. By
+referencing the keyboard guide included with the game, we could match
+these function pointers to functionality in the game, e.g. since the
+<code>G</code> key operates the landing gear, the DirectInput code for
+<code>G</code> is <code>0x22</code>, we know that the function pointer
+assigned to <code>0x79c268</code>, <code>sub_410c58</code>, must toggle
+the gear. We can immediately understand what over one hundred functions
+do, thanks to this function. Secondly, we found some debug format
+strings which print information about the world, including the player.
+By looking at the function where these format strings are used, we could
+start to intuit where in memory the player information is held and build
+out the player class/struct, which is a key data structure for any
+game.</p>
+<p>But for now, on the quest to find the unlock code for TAW’s
+debug/cheat menu, I can say that we have ‘DONEIT’.</p>
+</main>
+<hr>
+<footer>
+  <small>© Nick Govier</small>
+</footer>
+</body>
+</html>

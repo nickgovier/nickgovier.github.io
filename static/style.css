@@ -1,0 +1,40 @@
+body {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 20px;
+  font: 17px/1.6 Verdana, Arial, sans-serif;
+}
+
+header,
+footer {
+  margin: 24px 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px auto;
+}
+
+pre {
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid #aaa;
+}
+
+code {
+  font-family: Consolas, "Liberation Mono", monospace;
+}
+
+.footnotes {
+  margin-top: 40px;
+  font-size: 0.9em;
+}
