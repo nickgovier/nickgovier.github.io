@@ -6,6 +6,8 @@ url: x.github.io/post-stuff/
 
 add an index.md inside that folder, with images alongside
 
+update the main index.md to add the page to the table of contents
+
 go to root and in powershell
 Set-Location <root of this repo>
 .\build.ps1
