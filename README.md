@@ -6,8 +6,14 @@ url: x.github.io/post-stuff/
 
 add an index.md inside that folder, with images alongside
 
-go to root and in powershell run .\build.ps1
+go to root and in powershell
+Set-Location <root of this repo>
+.\build.ps1
+
 this will generate the output in docs which can then be committed to the repo and will automatically appear on the site
+
+Install pandoc with:
+winget install --source winget --exact --id JohnMacFarlane.Pandoc
 
 Use draw.io to make flowcharts and save them as .webp
 
