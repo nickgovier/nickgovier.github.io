@@ -50,8 +50,29 @@ correct.</p>
 <p><img src="monza2.png" alt="monza2" /></p>
 <p><img src="mexico1.png" alt="mexico1" /></p>
 <p>2026-08-10 10:19 (a218232)</p>
+<p>Some textures</p>
 <p><img src="spa1t.png" alt="spa1t" /></p>
 <p><img src="monza2t.png" alt="monza2t" /></p>
+<p>2026-08-18 19:14 (bbfc7da)</p>
+<p>Some alpha</p>
+<p><img src="spa1a.png" alt="spa1a" /></p>
+<p><img src="monza2a.png" alt="monza2a" /></p>
+<p>It took an embarrassing amount of time to figure out why track
+surface curve polygons were duplicated, where polygons were drawn
+between every successive vertex, every other vertex, and every fourth
+vertex:</p>
+<p><img src="lodall.png" alt="lodall" /></p>
+<p>Was it polygon fans going awry? Something to do with collision mesh
+and visible mesh not aligning?</p>
+<p>No, it was three LODs all being drawn at once…</p>
+<p><img src="lodh.png" alt="lodh" /></p>
+<p><img src="lodm.png" alt="lodm" /></p>
+<p><img src="lodl.png" alt="lodl" /></p>
+<p>I can’t think that this actually saved that much, and added the
+constraint that curve segments needed to be multiples of four vertices,
+and caused the track to visibly shift outward (away from the apex) as
+the camera approached. But I basically reversed the entire rendering
+pipeline before the obvious answer smacked me in the face.</p>
 </main>
 <hr>
 <footer>
